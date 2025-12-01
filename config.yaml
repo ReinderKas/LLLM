@@ -1,0 +1,139 @@
+# llama-swap configuration for LLLM
+# yaml-language-server: $schema=https://raw.githubusercontent.com/mostlygeek/llama-swap/refs/heads/main/config-schema.json
+
+healthCheckTimeout: 120
+logLevel: info
+
+macros:
+  "llama-server": "/Users/reinder/Documents/GitHub/LLLM/llama.cpp/build/bin/llama-server"
+  "models-dir": "/Users/reinder/Documents/GitHub/LLLM/models"
+
+models:
+  # ============ Small/Fast Models ============
+  
+  "llama-3.2-3b":
+    name: "Llama 3.2 3B Instruct"
+    cmd: |
+      ${llama-server} --port ${PORT}
+      --model ${models-dir}/Llama-3.2-3B-Instruct-Q8_0.gguf
+      --ctx-size 8192
+      --n-gpu-layers 99
+    aliases:
+      - "llama-small"
+
+  "phi-3.5-mini":
+    name: "Phi 3.5 Mini Instruct"
+    cmd: |
+      ${llama-server} --port ${PORT}
+      --model ${models-dir}/Phi-3.5-mini-instruct-Q8_0.gguf
+      --ctx-size 8192
+      --n-gpu-layers 99
+    aliases:
+      - "phi-mini"
+
+  "phi-4":
+    name: "Phi 4"
+    cmd: |
+      ${llama-server} --port ${PORT}
+      --model ${models-dir}/phi-4-Q4_K_M.gguf
+      --ctx-size 16384
+      --n-gpu-layers 99
+    aliases:
+      - "phi"
+
+  # ============ Medium Models (7-8B) ============
+
+  "qwen2.5-7b":
+    name: "Qwen 2.5 7B Instruct"
+    cmd: |
+      ${llama-server} --port ${PORT}
+      --model ${models-dir}/Qwen2.5-7B-Instruct-Q5_K_M.gguf
+      --ctx-size 32768
+      --n-gpu-layers 99
+    aliases:
+      - "qwen-7b"
+      - "gpt-3.5-turbo"
+
+  "llama-3.1-8b":
+    name: "Llama 3.1 8B Instruct"
+    cmd: |
+      ${llama-server} --port ${PORT}
+      --model ${models-dir}/Meta-Llama-3.1-8B-Instruct-Q8_0.gguf
+      --ctx-size 8192
+      --n-gpu-layers 99
+    aliases:
+      - "llama-8b"
+
+  "mistral-nemo":
+    name: "Mistral Nemo 12B Instruct"
+    cmd: |
+      ${llama-server} --port ${PORT}
+      --model ${models-dir}/Mistral-Nemo-Instruct-2407-Q5_K_M.gguf
+      --ctx-size 32768
+      --n-gpu-layers 99
+    aliases:
+      - "mistral"
+
+  "deepseek-coder-6.7b":
+    name: "DeepSeek Coder 6.7B Instruct"
+    cmd: |
+      ${llama-server} --port ${PORT}
+      --model ${models-dir}/deepseek-coder-6.7b-instruct.Q8_0.gguf
+      --ctx-size 16384
+      --n-gpu-layers 99
+    aliases:
+      - "deepseek-small"
+
+  # ============ Large Models (14B+) ============
+
+  "qwen2.5-14b":
+    name: "Qwen 2.5 14B Instruct"
+    cmd: |
+      ${llama-server} --port ${PORT}
+      --model ${models-dir}/Qwen2.5-14B-Instruct-Q5_K_M.gguf
+      --ctx-size 32768
+      --n-gpu-layers 99
+    aliases:
+      - "qwen-14b"
+      - "gpt-4o-mini"
+
+  "qwen2.5-coder-14b":
+    name: "Qwen 2.5 Coder 14B Instruct"
+    cmd: |
+      ${llama-server} --port ${PORT}
+      --model ${models-dir}/Qwen2.5-Coder-14B-Instruct-Q4_K_M.gguf
+      --ctx-size 32768
+      --n-gpu-layers 99
+    aliases:
+      - "qwen-coder"
+      - "coder"
+
+  "gemma-2-27b":
+    name: "Gemma 2 27B"
+    cmd: |
+      ${llama-server} --port ${PORT}
+      --model ${models-dir}/gemma-2-27b-it-Q3_K_M.gguf
+      --ctx-size 8192
+      --n-gpu-layers 99
+    aliases:
+      - "gemma"
+
+  "codellama-34b":
+    name: "CodeLlama 34B Instruct"
+    cmd: |
+      ${llama-server} --port ${PORT}
+      --model ${models-dir}/codellama-34b-instruct.Q3_K_M.gguf
+      --ctx-size 16384
+      --n-gpu-layers 99
+    aliases:
+      - "codellama"
+
+  "deepseek-coder-v2":
+    name: "DeepSeek Coder V2 Lite"
+    cmd: |
+      ${llama-server} --port ${PORT}
+      --model ${models-dir}/DeepSeek-Coder-V2-Lite-Instruct-Q4_K_M.gguf
+      --ctx-size 16384
+      --n-gpu-layers 99
+    aliases:
+      - "deepseek-v2"

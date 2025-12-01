@@ -1,0 +1,65 @@
+# Dependencies and subprojects (if not using git submodules)
+# llama.cpp/
+# llama-swap/
+
+# Build outputs
+llama.cpp/build/
+llama-swap/build/
+
+# Models (large files)
+models/
+llama.cpp/models/
+llama-swap/models/
+*.gguf
+*.bin
+
+# Environment files (may contain secrets)
+.env
+.env.*
+!.env.example
+
+# OS files
+.DS_Store
+**/.DS_Store
+*.swp
+*.swo
+*~
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.code-workspace
+
+# Node.js (for llama-swap UI)
+node_modules/
+dist/
+.npm
+.pnpm-store/
+
+# Python (for llama.cpp scripts)
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+*.egg-info/
+.eggs/
+*.egg
+.venv/
+venv/
+ENV/
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+
+# Go (for llama-swap)
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
