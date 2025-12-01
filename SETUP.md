@@ -145,3 +145,30 @@ Run `npm install` in the `llama-swap/ui` directory first.
 lsof -i :8080  # Find process using port
 kill -9 <PID>  # Kill it
 ```
+
+---
+
+## 7. Open WebUI (Full-Featured Chat)
+
+For a complete chat interface with **RAG**, **Memory**, and **Web Search**, use Open WebUI:
+
+### Quick Start (Docker)
+```sh
+# First, start llama-swap in one terminal
+./run.sh
+
+# Then start Open WebUI
+docker compose up -d
+```
+
+Open http://localhost:3000 and create a local account.
+
+### Features Included
+- **Web Search**: Settings → Web Search → Enable (supports Tavily, Google, DuckDuckGo, SearXNG)
+- **RAG**: Upload documents via the chat interface (PDFs, text files, URLs)
+- **Memory**: Automatic conversation history + Settings → Personalization → Memory
+
+### Stop Open WebUI
+```sh
+docker compose down
+```

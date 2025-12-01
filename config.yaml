@@ -137,3 +137,16 @@ models:
       --n-gpu-layers 99
     aliases:
       - "deepseek-v2"
+
+  # ============ OpenAI GPT-OSS ============
+
+  "gpt-oss-20b":
+    name: "OpenAI GPT-OSS 20B"
+    cmd: |
+      ${llama-server} --port ${PORT}
+      --model ${models-dir}/gpt-oss-20b-Q4_K_M.gguf
+      --ctx-size 16384
+      --n-gpu-layers 99
+    aliases:
+      - "gpt-oss"
+      - "openai"

@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  # Open WebUI - Full-featured chat interface with RAG, Memory, Web Search
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: lllm-webui
+    ports:
+      - "3000:8080"
+    environment:
+      # Connect to llama-swap running on host
+      - OPENAI_API_BASE_URL=http://host.docker.internal:8080/v1
+      - OPENAI_API_KEY=not-needed
+      # Enable features
+      - ENABLE_RAG_WEB_SEARCH=true
+      - RAG_EMBEDDING_MODEL=all-MiniLM-L6-v2
+      - ENABLE_RAG_LOCAL_WEB_FETCH=true
+      # Web search (configure one of these in the UI)
+      # - SEARXNG_QUERY_URL=http://searxng:8080/search?q=<query>
+    volumes:
+      - open-webui-data:/app/backend/data
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+
+  # Optional: SearXNG for private web search (no API key needed)
+  # Uncomment if you want self-hosted search
+  # searxng:
+  #   image: searxng/searxng:latest
+  #   container_name: lllm-searxng
+  #   ports:
+  #     - "8888:8080"
+  #   volumes:
+  #     - ./searxng:/etc/searxng
+  #   restart: unless-stopped
+
+volumes:
+  open-webui-data:

@@ -42,6 +42,9 @@ models=(
     # FAST & LIGHTWEIGHT
     "bartowski/Llama-3.2-3B-Instruct-GGUF|Llama-3.2-3B-Instruct-Q8_0.gguf|~3.5GB|Fast - Very quick responses"
     "bartowski/Phi-3.5-mini-instruct-GGUF|Phi-3.5-mini-instruct-Q8_0.gguf|~4GB|Fast - Lightweight tasks"
+    
+    # OPENAI GPT-OSS
+    "unsloth/gpt-oss-20b-GGUF|gpt-oss-20b-Q4_K_M.gguf|~11.6GB|OpenAI GPT-OSS 20B - Reasoning & agentic"
 )
 
 # Display menu
