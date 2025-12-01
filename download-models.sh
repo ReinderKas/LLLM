@@ -23,23 +23,23 @@ echo ""
 
 # All models from the recommendations
 models=(
-    # 🏆 TOP PICKS
+    # TOP PICKS
     "bartowski/Qwen2.5-14B-Instruct-GGUF|Qwen2.5-14B-Instruct-Q4_K_M.gguf|~9GB|Top Pick - General purpose"
     "bartowski/Meta-Llama-3.1-8B-Instruct-GGUF|Meta-Llama-3.1-8B-Instruct-Q8_0.gguf|~8.5GB|Top Pick - Full 8-bit precision"
     "bartowski/Mistral-Nemo-Instruct-2407-GGUF|Mistral-Nemo-Instruct-2407-Q5_K_M.gguf|~9GB|Top Pick - Fast chat"
     "bartowski/DeepSeek-Coder-V2-Lite-Instruct-GGUF|DeepSeek-Coder-V2-Lite-Instruct-Q4_K_M.gguf|~10GB|Top Pick - Coding"
     
-    # 🧠 REASONING & COMPLEX TASKS
+    # REASONING & COMPLEX TASKS
     "bartowski/Qwen2.5-14B-Instruct-GGUF|Qwen2.5-14B-Instruct-Q5_K_M.gguf|~11GB|Reasoning - Higher quality"
     "bartowski/phi-4-GGUF|phi-4-Q4_K_M.gguf|~9GB|Reasoning - Microsoft's latest"
     "bartowski/gemma-2-27b-it-GGUF|gemma-2-27b-it-Q3_K_M.gguf|~13GB|Reasoning - Largest model"
     
-    # 💻 CODING SPECIALISTS
+    # CODING SPECIALISTS
     "bartowski/Qwen2.5-Coder-14B-Instruct-GGUF|Qwen2.5-Coder-14B-Instruct-Q4_K_M.gguf|~9GB|Coding - Top coding model"
     "TheBloke/CodeLlama-34B-Instruct-GGUF|codellama-34b-instruct.Q3_K_M.gguf|~15GB|Coding - Large & powerful"
     "TheBloke/deepseek-coder-6.7B-instruct-GGUF|deepseek-coder-6.7b-instruct.Q8_0.gguf|~7GB|Coding - Fast"
     
-    # ⚡ FAST & LIGHTWEIGHT
+    # FAST & LIGHTWEIGHT
     "bartowski/Llama-3.2-3B-Instruct-GGUF|Llama-3.2-3B-Instruct-Q8_0.gguf|~3.5GB|Fast - Very quick responses"
     "bartowski/Phi-3.5-mini-instruct-GGUF|Phi-3.5-mini-instruct-Q8_0.gguf|~4GB|Fast - Lightweight tasks"
 )
@@ -77,9 +77,9 @@ download_model() {
     
     # Download with curl, showing progress
     if curl -L --progress-bar -o "$file" "$url"; then
-        echo -e "${GREEN}✓ Downloaded successfully${NC}"
+        echo -e "${GREEN}Downloaded successfully${NC}"
     else
-        echo -e "${RED}✗ Failed to download $file${NC}"
+        echo -e "${RED}Failed to download $file${NC}"
         rm -f "$file"  # Clean up partial download
     fi
     echo ""
