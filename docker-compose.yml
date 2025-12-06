@@ -23,6 +23,46 @@ services:
       - "host.docker.internal:host-gateway"
     restart: unless-stopped
 
+  # n8n - Workflow automation
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: lllm-n8n
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=admin
+      - N8N_BASIC_AUTH_PASSWORD=changeme
+      - N8N_HOST=0.0.0.0
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - WEBHOOK_URL=http://localhost:5678/
+      # Generic timezone
+      - GENERIC_TIMEZONE=Europe/Amsterdam
+      - TZ=Europe/Amsterdam
+    volumes:
+      - n8n-data:/home/node/.n8n
+      - ./data:/data
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+
+  # Datasette - REST API for SQLite database
+  datasette:
+    build:
+      context: .
+      dockerfile_inline: |
+        FROM python:3.12-slim
+        RUN pip install --no-cache-dir datasette
+        EXPOSE 8001
+    container_name: lllm-datasette
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./data:/data:ro
+    command: datasette /data/news_aggregator.db --host 0.0.0.0 --port 8001 --cors --setting sql_time_limit_ms 5000
+    restart: unless-stopped
+
   # Optional: SearXNG for private web search (no API key needed)
   # Uncomment if you want self-hosted search
   # searxng:
@@ -36,3 +76,4 @@ services:
 
 volumes:
   open-webui-data:
+  n8n-data:

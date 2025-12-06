@@ -157,8 +157,8 @@ For a complete chat interface with **RAG**, **Memory**, and **Web Search**, use 
 # First, start llama-swap in one terminal
 ./run.sh
 
-# Then start Open WebUI
-docker compose up -d
+# Then start Open WebUI (--build ensures native ARM64 images on Apple Silicon)
+docker compose up -d --build
 ```
 
 Open http://localhost:3000 and create a local account.

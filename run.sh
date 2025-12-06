@@ -35,11 +35,14 @@ if ! docker info > /dev/null 2>&1; then
     echo ""
 fi
 
-# Start Open WebUI in Docker (if Docker is available)
+# Start Docker services (if Docker is available)
 if docker info > /dev/null 2>&1; then
-    echo "Starting Open WebUI..."
-    docker compose up -d
-    echo "    Open WebUI: http://localhost:3000"
+    echo "Starting Docker services..."
+    docker compose up -d --build
+    echo "    Open WebUI:  http://localhost:3000"
+    echo "    n8n:         http://localhost:5678 (admin/changeme)"
+    echo "    Datasette:   http://localhost:8001 (News API)"
+    echo "    News JSON:   http://localhost:8001/news_aggregator/news_items.json"
     echo ""
 fi
 
@@ -52,7 +55,13 @@ echo ""
 echo "Press Ctrl+C to stop"
 echo ""
 
-# Handle Ctrl+C to stop both services
-trap 'echo ""; echo "Stopping services..."; docker compose down 2>/dev/null; exit 0' INT
+# Handle Ctrl+C to stop all services
+cleanup() {
+    echo ""
+    echo "Stopping services..."
+    docker compose down 2>/dev/null
+    exit 0
+}
+trap cleanup INT
 
 ./llama-swap/build/llama-swap --config "$CONFIG" --listen ":$PORT"
