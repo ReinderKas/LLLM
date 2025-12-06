@@ -1,0 +1,312 @@
+{
+  "name": "The Verge to SQLite",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 6
+            }
+          ]
+        }
+      },
+      "id": "1bdfe1d5-c74b-4d2d-bc9a-6a2607758b82",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -848,
+        -208
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://www.theverge.com/rss/index.xml",
+        "options": {}
+      },
+      "id": "7537f93d-5c49-4f3c-87b6-b8c20863b4b3",
+      "name": "Get Verge RSS Feed",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1,
+      "position": [
+        -448,
+        -208
+      ]
+    },
+    {
+      "parameters": {
+        "maxItems": 10
+      },
+      "id": "0aa8825a-cd09-41b8-a5c6-920dbcbb73d0",
+      "name": "Limit to 10 Items",
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        -256,
+        -208
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "9925f530-7071-4d16-b007-d3f5484d3e18",
+      "name": "Loop Over Items",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -48,
+        -208
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract article info from RSS feed item\nconst config = $('Configuration').first().json;\nconst data = $input.item.json;\n\n// RSS feeds provide these fields\nconst articleUrl = data.link || '';\nconst title = data.title || '';\nconst author = data.creator || data.author || 'The Verge';\nconst pubDate = data.pubDate || data.isoDate || null;\nconst content = data.content || data.contentSnippet || data.description || '';\nconst categories = data.categories || [];\n\n// Filter: Only include tech/dev/AI related articles\nconst techCategories = ['tech', 'ai', 'apple', 'google', 'microsoft', 'amazon', 'meta', 'software', 'apps', 'developers', 'programming', 'code', 'cybersecurity', 'security', 'privacy', 'science', 'space', 'gadgets', 'computers', 'laptops', 'phones', 'android', 'ios', 'web', 'internet', 'cloud', 'data', 'machine learning', 'robotics', 'startups', 'business'];\n\nconst categoriesLower = categories.map(c => c.toLowerCase());\nconst titleLower = title.toLowerCase();\n\n// Check if any category matches OR title contains tech keywords\nconst isTechArticle = categoriesLower.some(cat => \n  techCategories.some(tech => cat.includes(tech))\n) || techCategories.some(tech => titleLower.includes(tech));\n\n// Skip non-tech articles (entertainment, gaming, film, tv, etc.)\nif (!isTechArticle) {\n  return []; // Return empty to skip this item\n}\n\n// Create a unique ID from the URL\nconst externalId = articleUrl ? Buffer.from(articleUrl).toString('base64').substring(0, 50) : Date.now().toString();\n\nreturn {\n  json: {\n    title: title,\n    url: articleUrl,\n    author: author,\n    publishedAt: pubDate,\n    content: content.substring(0, 4000), // Limit content for summarization\n    categories: categories.join(', '),\n    externalId: externalId,\n    config: config\n  }\n};"
+      },
+      "id": "b40a65b4-fc33-482b-9e0e-6cc5a34ffb6c",
+      "name": "Extract Article Info",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        160,
+        -208
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.config.llmUrl }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: $json.config.llmModel, messages: [{ role: 'system', content: 'You are a helpful assistant that summarizes tech news articles concisely. Create a 2-3 sentence summary that captures the key points. Be direct and informative. Do not use markdown formatting.' }, { role: 'user', content: 'Summarize this article titled \"' + $json.title + '\":\\n\\n' + $json.content }], temperature: 0.3, max_tokens: 300 }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 120000
+        }
+      },
+      "id": "1a0eb0b1-6bff-4a65-bda9-5587c546ef6a",
+      "name": "Summarize with Local LLM",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        352,
+        -208
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Prepare data for Datasette Insert API\nconst articleInfo = $('Extract Article Info').first().json;\nconst llmResponse = $input.item.json;\n\n// Extract summary from OpenAI-compatible response format\nlet summary = 'Summary generation failed';\n\ntry {\n  if (llmResponse && llmResponse.choices && llmResponse.choices[0] && llmResponse.choices[0].message && llmResponse.choices[0].message.content) {\n    summary = llmResponse.choices[0].message.content.trim();\n  } else if (llmResponse && llmResponse.content) {\n    summary = llmResponse.content.trim();\n  } else if (llmResponse && llmResponse.text) {\n    summary = llmResponse.text.trim();\n  } else if (llmResponse && llmResponse.error) {\n    summary = 'LLM Error: ' + JSON.stringify(llmResponse.error);\n  } else if (llmResponse && llmResponse.message) {\n    summary = 'Error: ' + llmResponse.message;\n  } else {\n    summary = 'No valid response from LLM. Response: ' + JSON.stringify(llmResponse).substring(0, 200);\n  }\n} catch (e) {\n  summary = 'Error parsing LLM response: ' + e.message;\n}\n\n// Prepare metadata JSON\nconst metadata = JSON.stringify({\n  categories: articleInfo.categories,\n  source: 'rss'\n});\n\n// Return data matching the news_items table schema\nreturn {\n  json: {\n    platform: 'theverge',\n    external_id: articleInfo.externalId,\n    title: articleInfo.title,\n    summary: summary,\n    url: articleInfo.url,\n    author: articleInfo.author,\n    upvotes: 0,\n    downvotes: 0,\n    comments_count: 0,\n    engagement_score: 0,\n    category: articleInfo.categories || 'tech',\n    thumbnail_url: null,\n    published_at: articleInfo.publishedAt,\n    metadata: metadata\n  }\n};"
+      },
+      "id": "b459cd96-12e5-4789-9ef5-611c28a6305a",
+      "name": "Prepare for SQLite",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        560,
+        -208
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://lllm-datasette:8001/-/insert/news_aggregator/news_items?replace=1",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.DATASETTE_INSERT_TOKEN }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 10000
+        }
+      },
+      "id": "9abdbb22-c503-49a6-a470-110d1ce8eb3e",
+      "name": "Save to SQLite",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        752,
+        -208
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const config = {\n  sqliteDbPath: '/data/news_aggregator.db',\n  \n  llmUrl: 'http://host.docker.internal:8080/v1/chat/completions',\n  llmModel: 'gpt-oss-20b',  // Change to any model in your config.yaml\n\n  theverge_limit:25,\n};\n\nreturn [{ json: config }];"
+      },
+      "id": "77865ef6-6da8-49a7-a971-821a5a0dfbf7",
+      "name": "Configuration",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -656,
+        -208
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Verge RSS Feed": {
+      "main": [
+        [
+          {
+            "node": "Limit to 10 Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limit to 10 Items": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Extract Article Info",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Article Info": {
+      "main": [
+        [
+          {
+            "node": "Summarize with Local LLM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Summarize with Local LLM": {
+      "main": [
+        [
+          {
+            "node": "Prepare for SQLite",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare for SQLite": {
+      "main": [
+        [
+          {
+            "node": "Save to SQLite",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save to SQLite": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Configuration": {
+      "main": [
+        [
+          {
+            "node": "Get Verge RSS Feed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "9c6b444b-ba66-43b7-be96-8467feec19e0",
+  "meta": {
+    "instanceId": "174d1d97b115aa1370077cd95974f6ef935834bbc57dae8c93e03ef97933c6d6"
+  },
+  "id": "wS4nUPHqTy69ZnA2",
+  "tags": [
+    {
+      "updatedAt": "2025-12-06T10:33:31.327Z",
+      "createdAt": "2025-12-06T10:33:31.327Z",
+      "id": "JorrG9lmzOLmXA8d",
+      "name": "ai-summary"
+    },
+    {
+      "updatedAt": "2025-12-04T15:21:22.694Z",
+      "createdAt": "2025-12-04T15:21:22.694Z",
+      "id": "X6cxmsCFwMLW6CZJ",
+      "name": "automation"
+    },
+    {
+      "updatedAt": "2025-12-04T15:21:22.692Z",
+      "createdAt": "2025-12-04T15:21:22.692Z",
+      "id": "ntZT90gtTiNA9tYs",
+      "name": "news"
+    },
+    {
+      "updatedAt": "2025-12-06T10:33:31.314Z",
+      "createdAt": "2025-12-06T10:33:31.314Z",
+      "id": "ooJOi8AmuXEdeJal",
+      "name": "sqlite"
+    },
+    {
+      "updatedAt": "2025-12-06T16:07:16.150Z",
+      "createdAt": "2025-12-06T16:07:16.150Z",
+      "id": "y1HebPOIckQuM6Tw",
+      "name": "theverge"
+    }
+  ]
+}
