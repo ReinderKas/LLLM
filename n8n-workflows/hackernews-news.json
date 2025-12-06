@@ -1,0 +1,366 @@
+{
+  "name": "Hacker News to SQLite",
+  "nodes": [
+    {
+      "parameters": {
+        "jsCode": "// ============================================\n// 🔧 CONFIGURATION - EDIT YOUR SETTINGS HERE\n// ============================================\n\nconst config = {\n  // SQLite Database Path (mounted from host ./data to /data in Docker)\n  sqliteDbPath: '/data/news_aggregator.db',\n  \n  // LLM Settings (llama-swap on host)\n  llmUrl: 'http://host.docker.internal:8080/v1/chat/completions',\n  llmModel: 'qwen2.5-14b'  // Change to any model in your config.yaml\n};\n\nreturn [{ json: config }];"
+      },
+      "id": "config-node",
+      "name": "⚙️ Configuration",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        424,
+        144
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 6
+            }
+          ]
+        }
+      },
+      "id": "d12ae752-f7e0-4d91-b057-a8e135fd4cc6",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        224,
+        144
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "all",
+        "returnAll": false,
+        "limit": 10,
+        "additionalFields": {
+          "tags": [
+            "front_page"
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.hackerNews",
+      "typeVersion": 1,
+      "position": [
+        624,
+        144
+      ],
+      "id": "a2f2bf31-3078-4122-aa8a-267954d43073",
+      "name": "Get Top 10 Posts"
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "loop-node-001",
+      "name": "Loop Over Items",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        824,
+        144
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract article info and prepare for content fetching\nconst config = $('⚙️ Configuration').first().json;\nconst data = $input.item.json;\n\n// Get the URL - HN items have 'url' for external links or use HN discussion URL\nconst articleUrl = data.url || `https://news.ycombinator.com/item?id=${data.objectID || data.id}`;\nconst hnUrl = `https://news.ycombinator.com/item?id=${data.objectID || data.id}`;\n\nreturn {\n  json: {\n    title: data.title,\n    url: articleUrl,\n    hnUrl: hnUrl,\n    points: data.points || 0,\n    numComments: data.num_comments || 0,\n    author: data.author || 'unknown',\n    objectID: String(data.objectID || data.id),\n    createdAt: data.created_at || null,\n    config: config\n  }\n};"
+      },
+      "id": "b1c2d3e4-f5a6-7890-abcd-ef1234567890",
+      "name": "Extract Article Info",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1024,
+        144
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            },
+            {
+              "name": "Accept",
+              "value": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          },
+          "timeout": 15000
+        }
+      },
+      "id": "c2d3e4f5-a6b7-8901-bcde-f23456789012",
+      "name": "Fetch Article Content",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1224,
+        144
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract text content from HTML and merge with article info\nconst input = $input.item.json;\n\n// Get article info passed from previous node\nconst articleInfo = $('Extract Article Info').first().json;\n\n// The HTTP response could be in different fields depending on response type and n8n version\n// When responseFormat is 'text', n8n puts the response in 'data' field\n// When there's an error, it might be in 'error' or just pass through the error object\nlet html = '';\nif (typeof input === 'string') {\n  html = input;\n} else if (input.data) {\n  html = String(input.data);\n} else if (input.body) {\n  html = String(input.body);\n} else if (input.response) {\n  html = String(input.response);\n}\n\n// Check if we got an error response\nconst hasError = input.error || input.errorMessage || (input.statusCode && input.statusCode >= 400);\n\n// Simple HTML to text conversion\nlet text = html\n  .replace(/<script[^>]*>[\\s\\S]*?<\\/script>/gi, '')\n  .replace(/<style[^>]*>[\\s\\S]*?<\\/style>/gi, '')\n  .replace(/<nav[^>]*>[\\s\\S]*?<\\/nav>/gi, '')\n  .replace(/<header[^>]*>[\\s\\S]*?<\\/header>/gi, '')\n  .replace(/<footer[^>]*>[\\s\\S]*?<\\/footer>/gi, '')\n  .replace(/<[^>]+>/g, ' ')\n  .replace(/&nbsp;/g, ' ')\n  .replace(/&amp;/g, '&')\n  .replace(/&lt;/g, '<')\n  .replace(/&gt;/g, '>')\n  .replace(/&quot;/g, '\"')\n  .replace(/&#39;/g, \"'\")\n  .replace(/\\s+/g, ' ')\n  .trim();\n\n// Limit text length for summarization\ntext = text.substring(0, 4000);\n\n// Determine if we have meaningful content (at least 100 chars of actual text)\nconst hasContent = !hasError && text.length > 100;\n\nreturn {\n  json: {\n    title: articleInfo.title,\n    url: articleInfo.url,\n    hnUrl: articleInfo.hnUrl,\n    points: articleInfo.points,\n    numComments: articleInfo.numComments,\n    author: articleInfo.author,\n    objectID: articleInfo.objectID,\n    createdAt: articleInfo.createdAt,\n    content: hasContent ? text : 'This is a link or discussion post without article content. Please summarize based on the title only.',\n    hasContent: hasContent,\n    config: articleInfo.config\n  }\n};"
+      },
+      "id": "d3e4f5a6-b7c8-9012-cdef-345678901234",
+      "name": "Parse HTML Content",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1424,
+        144
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.config.llmUrl }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: $json.config.llmModel, messages: [{ role: 'system', content: 'You are a helpful assistant that summarizes articles concisely. Create a 2-3 sentence summary that captures the key points. Be direct and informative. Do not use markdown formatting.' }, { role: 'user', content: 'Summarize this article titled \"' + $json.title + '\":\\n\\n' + $json.content }], temperature: 0.3, max_tokens: 300 }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 120000
+        }
+      },
+      "id": "e4f5a6b7-c8d9-0123-def0-456789012345",
+      "name": "Summarize with Local LLM",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1624,
+        144
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Prepare data for Datasette Insert API\nconst articleInfo = $('Parse HTML Content').first().json;\nconst llmResponse = $input.item.json;\n\n// Extract summary from OpenAI-compatible response format\nlet summary = 'Summary generation failed';\n\ntry {\n  if (llmResponse && llmResponse.choices && llmResponse.choices[0] && llmResponse.choices[0].message && llmResponse.choices[0].message.content) {\n    summary = llmResponse.choices[0].message.content.trim();\n  } else if (llmResponse && llmResponse.content) {\n    summary = llmResponse.content.trim();\n  } else if (llmResponse && llmResponse.text) {\n    summary = llmResponse.text.trim();\n  } else if (llmResponse && llmResponse.error) {\n    summary = 'LLM Error: ' + JSON.stringify(llmResponse.error);\n  } else if (llmResponse && llmResponse.message) {\n    // Sometimes errors come as { message: 'error text' }\n    summary = 'Error: ' + llmResponse.message;\n  } else {\n    summary = 'No valid response from LLM. Response: ' + JSON.stringify(llmResponse).substring(0, 200);\n  }\n} catch (e) {\n  summary = 'Error parsing LLM response: ' + e.message;\n}\n\n// Calculate engagement score\nconst engagementScore = articleInfo.points + articleInfo.numComments;\n\n// Prepare metadata JSON for HackerNews-specific fields\nconst metadata = JSON.stringify({\n  hn_url: articleInfo.hnUrl,\n  type: 'story'\n});\n\n// Return data matching the news_items table schema\nreturn {\n  json: {\n    platform: 'hackernews',\n    external_id: String(articleInfo.objectID),\n    title: articleInfo.title,\n    summary: summary,\n    url: articleInfo.url,\n    author: articleInfo.author || 'unknown',\n    upvotes: articleInfo.points || 0,\n    downvotes: 0,\n    comments_count: articleInfo.numComments || 0,\n    engagement_score: engagementScore,\n    category: 'front_page',\n    thumbnail_url: null,\n    published_at: articleInfo.createdAt || null,\n    metadata: metadata\n  }\n};"
+      },
+      "id": "f5a6b7c8-d9e0-1234-ef01-567890123456",
+      "name": "Prepare for SQLite",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1824,
+        144
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://lllm-datasette:8001/-/insert/news_aggregator/news_items?replace=1",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer lllm-insert-token-change-me"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 10000
+        }
+      },
+      "id": "sqlite-insert-node",
+      "name": "Save to SQLite",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2024,
+        144
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "⚙️ Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "⚙️ Configuration": {
+      "main": [
+        [
+          {
+            "node": "Get Top 10 Posts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Top 10 Posts": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        null,
+        [
+          {
+            "node": "Extract Article Info",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Article Info": {
+      "main": [
+        [
+          {
+            "node": "Fetch Article Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Article Content": {
+      "main": [
+        [
+          {
+            "node": "Parse HTML Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse HTML Content": {
+      "main": [
+        [
+          {
+            "node": "Summarize with Local LLM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Summarize with Local LLM": {
+      "main": [
+        [
+          {
+            "node": "Prepare for SQLite",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare for SQLite": {
+      "main": [
+        [
+          {
+            "node": "Save to SQLite",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save to SQLite": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "3ff4ca7f-8d8a-4603-a97e-680c89ad271a",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "174d1d97b115aa1370077cd95974f6ef935834bbc57dae8c93e03ef97933c6d6"
+  },
+  "id": "wGzOYc3ZuC5eFRYj",
+  "tags": [
+    {
+      "updatedAt": "2025-12-06T00:31:16.188Z",
+      "createdAt": "2025-12-06T00:31:16.188Z",
+      "id": "sqliteTag001",
+      "name": "sqlite"
+    },
+    {
+      "updatedAt": "2025-12-06T00:31:16.188Z",
+      "createdAt": "2025-12-06T00:31:16.188Z",
+      "id": "hnNewsTag001",
+      "name": "hackernews"
+    },
+    {
+      "updatedAt": "2025-12-04T15:21:22.694Z",
+      "createdAt": "2025-12-04T15:21:22.694Z",
+      "id": "X6cxmsCFwMLW6CZJ",
+      "name": "automation"
+    },
+    {
+      "updatedAt": "2025-12-04T15:21:22.692Z",
+      "createdAt": "2025-12-04T15:21:22.692Z",
+      "id": "ntZT90gtTiNA9tYs",
+      "name": "news"
+    },
+    {
+      "name": "ai-summary",
+      "id": "aiSummaryTag01",
+      "updatedAt": "2025-12-06T00:31:16.188Z",
+      "createdAt": "2025-12-06T00:31:16.188Z"
+    }
+  ]
+}
