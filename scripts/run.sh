@@ -5,20 +5,21 @@ set -e
 # Starts llama-swap and Open WebUI
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "$SCRIPT_DIR"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+cd "$PROJECT_ROOT"
 
 PORT="${1:-8080}"
 CONFIG="${2:-config.yaml}"
 
 # Check if llama-swap is built
 if [[ ! -f "llama-swap/build/llama-swap" ]]; then
-    echo "Error: llama-swap not built. Run ./build.sh first."
+    echo "Error: llama-swap not built. Run ./scripts/build.sh first."
     exit 1
 fi
 
 # Check if llama-server is built
 if [[ ! -f "llama.cpp/build/bin/llama-server" ]]; then
-    echo "Error: llama.cpp not built. Run ./build.sh first."
+    echo "Error: llama.cpp not built. Run ./scripts/build.sh first."
     exit 1
 fi
 

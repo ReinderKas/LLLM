@@ -5,7 +5,8 @@ set -e
 # Builds llama.cpp, llama-swap server, and llama-swap UI
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "$SCRIPT_DIR"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+cd "$PROJECT_ROOT"
 
 # Detect CPU cores
 if [[ "$OSTYPE" == "darwin"* ]]; then
@@ -41,10 +42,10 @@ echo ""
 
 # Initialize SQLite database for news aggregator
 echo "[4/4] Initializing news aggregator database..."
-DB_PATH="$SCRIPT_DIR/data/news_aggregator.db"
-SCHEMA_PATH="$SCRIPT_DIR/n8n-workflows/schema.sql"
+DB_PATH="$PROJECT_ROOT/data/news_aggregator.db"
+SCHEMA_PATH="$PROJECT_ROOT/n8n-workflows/schema.sql"
 
-mkdir -p "$SCRIPT_DIR/data"
+mkdir -p "$PROJECT_ROOT/data"
 
 if [ ! -f "$DB_PATH" ]; then
     if [ -f "$SCHEMA_PATH" ]; then
@@ -64,12 +65,12 @@ echo "Build complete!"
 echo ""
 echo "Prerequisites for running:"
 echo "    - Docker Desktop (for Open WebUI)"
-echo "    - Models in ./models/ (run ./download-models.sh)"
+echo "    - Models in ./models/ (run ./scripts/download-models.sh)"
 echo ""
-echo "Services available after running ./run.sh:"
+echo "Services available after running ./scripts/run.sh:"
 echo "    - llama-swap:  http://localhost:8080"
 echo "    - Datasette:   http://localhost:8001 (News API)"
 echo "    - Open WebUI:  http://localhost:3000"
 echo "    - n8n:         http://localhost:5678"
 echo ""
-echo "Run ./run.sh to start everything"
+echo "Run ./scripts/run.sh to start everything"

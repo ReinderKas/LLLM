@@ -53,13 +53,13 @@ services:
       context: .
       dockerfile_inline: |
         FROM python:3.12-slim
-        RUN pip install --no-cache-dir datasette
+        RUN pip install --no-cache-dir datasette datasette-write
         EXPOSE 8001
     container_name: lllm-datasette
     ports:
       - "8001:8001"
     volumes:
-      - ./data:/data:ro
+      - ./data:/data
     command: datasette /data/news_aggregator.db --host 0.0.0.0 --port 8001 --cors --setting sql_time_limit_ms 5000
     restart: unless-stopped
 

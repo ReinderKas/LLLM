@@ -5,7 +5,8 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-MODELS_DIR="$SCRIPT_DIR/models"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+MODELS_DIR="$PROJECT_ROOT/models"
 
 # Colors
 GREEN='\033[0;32m'

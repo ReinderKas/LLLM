@@ -1,11 +1,12 @@
 #!/bin/bash
 # LLLM Stop Script
-# Stops Open WebUI
+# Stops all Docker containers (Open WebUI, n8n, Datasette)
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "$SCRIPT_DIR"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+cd "$PROJECT_ROOT"
 
-echo "Stopping Open WebUI..."
+echo "Stopping Docker containers..."
 docker compose down
 
 echo "Done."
