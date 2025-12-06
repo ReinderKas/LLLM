@@ -47,12 +47,22 @@ A complete local LLM stack for macOS with chat UI, workflow automation, and news
 - **News Aggregator**: Automated workflows fetch and summarize news via LLM
 - **REST API**: OpenAI-compatible API at `/v1/chat/completions`
 
-## Requirements
+## Setup
 
-- macOS (Apple Silicon recommended)
+### Prerequisites
+
+- macOS (Apple Silicon recommended) with ~16GB RAM
 - Docker Desktop
-- ~16GB RAM minimum
-- CMake, Go, Node.js (for building)
+- Build tools: `brew install cmake go node`
+
+### Installation
+
+```sh
+git clone --recursive https://github.com/YourUsername/LLLM.git && cd LLLM
+./scripts/build.sh          # Build llama.cpp, llama-swap, UI
+./scripts/download-models.sh # Download models (interactive)
+./scripts/run.sh            # Start all services
+```
 
 ## Connect from External Device
 
@@ -81,5 +91,3 @@ LLLM/
 ├── data/                # SQLite database
 └── n8n-workflows/       # Automation workflows
 ```
-
-See [SETUP.md](SETUP.md) for detailed setup instructions.

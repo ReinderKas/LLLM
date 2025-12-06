@@ -1,0 +1,23 @@
+{
+  "title": "LLLM News Aggregator",
+  "description": "SQLite database for aggregated news with AI summaries",
+  "plugins": {
+    "datasette-insert": {
+      "allow": {
+        "bot": "n8n-writer"
+      }
+    },
+    "datasette-auth-tokens": {
+      "tokens": [
+        {
+          "token": {
+            "$env": "DATASETTE_INSERT_TOKEN"
+          },
+          "actor": {
+            "bot": "n8n-writer"
+          }
+        }
+      ]
+    }
+  }
+}
